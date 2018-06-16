@@ -1,5 +1,6 @@
 package com.example.photon.photonandroid;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
@@ -9,9 +10,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.hardware.usb.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import io.particle.android.sdk.cloud.*;
 import io.particle.android.sdk.utils.*;
@@ -27,7 +30,7 @@ public class MainActivity extends Activity  {
     private boolean clicked = false;
     private int i = 0;
     private int retrieved = 0;
-    private List<ParticleDevice> devices;
+//    private List<ParticleDevice> devices;
     Handler handler;
 
     @Override
@@ -36,7 +39,6 @@ public class MainActivity extends Activity  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ParticleCloudSDK.init(this);
         connect = findViewById(R.id.connect);
 
         check =  findViewById(R.id.check);
@@ -50,7 +52,6 @@ public class MainActivity extends Activity  {
         variable =  findViewById(R.id.variable);
 
 
-
         View.OnClickListener connectListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -58,22 +59,22 @@ public class MainActivity extends Activity  {
 
                     @Override
                     public void run() {
-                        try {
-                            ParticleCloudSDK.getCloud().logIn("hc.eng@outlook.com", "Qinyou413");
-//                            System.out.println("Logged In");
-                            Toaster.s(MainActivity.this, "Logged in!");
-                            devices = ParticleCloudSDK.getCloud().getDevices();
-//                            Toaster.s(MainActivity.this, devices.get(0).getID());
-                            while(true) {
-                                retrieved = devices.get(0).getIntVariable("analogvalue");
-                            }
-                        } catch (ParticleCloudException e) {
-                            e.printStackTrace();
-                        } catch (ParticleDevice.VariableDoesNotExistException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        byte[] DATA = null;
+                        int TIMEOUT = 2000;
+                        UsbManager manager = (UsbManager) getApplicationContext().getSystemService(Context.USB_SERVICE);
+                        Map<String, UsbDevice> devices = manager.getDeviceList();
+                        UsbDevice mDevice = null;
+                        Toaster.s(MainActivity.this, "looking for");
+                        for(String key: devices.keySet()){
+                            Toaster.s(MainActivity.this, key + "; " + devices.get(key));
+                            mDevice = devices.get(key);
                         }
+                        UsbDeviceConnection connection = manager.openDevice(mDevice);
+                        UsbEndpoint endpoint = mDevice.getInterface(0).getEndpoint(0);
+
+                        connection.claimInterface(mDevice.getInterface(0), true);
+                        connection.bulkTransfer(endpoint, DATA, DATA.length, TIMEOUT);
+                        Toaster.s(MainActivity.this, DATA.toString());
                     }
                 }).start();
             }
